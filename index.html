@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>USB DAC Volume Control</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 50px;
+        }
+        h1 {
+            margin-bottom: 20px;
+        }
+        label {
+            font-size: 1.2em;
+        }
+    </style>
+</head>
+<body>
+    <h1>USB DAC Volume Control</h1>
+    <button id="connect">Connect USB DAC</button>
+    <div>
+        <label for="volume">Volume:</label>
+        <input type="range" id="volume" min="0" max="100" value="50">
+    </div>
+    <div id="message" style="margin-top: 20px; color: red;"></div>
+    <script>
+        const connectButton = document.getElementById('connect');
+        const volumeControl = document.getElementById('volume');
+        const messageDiv = document.getElementById('message');
+        let dacDevice;
+
+        connectButton.addEventListener('click', async () => {
+            try {
+                // Attempt to request the device
+                const device = await navigator.usb.requestDevice({ filters: [{ vendorId: 0x10EC }] }); // Realtek vendor ID
+                await device.open();
+                dacDevice = device;
+                messageDiv.textContent = 'DAC connected successfully!';
+                console.log('DAC connected:', dacDevice);
+            } catch (error) {
+                console.error('Error connecting to DAC:', error);
+                if (error.message.includes('Permission denied')) {
+                    messageDiv.textContent = 'Access denied. Make sure the device is connected and refresh the page.';
+                } else if (error.message.includes('No device found')) {
+                    messageDiv.textContent = 'No DAC found. Ensure the DAC is connected and try again.';
+                } else {
+                    messageDiv.textContent = 'Failed to connect to DAC. Check device permissions or compatibility.';
+                }
+            }
+        });
+
+        volumeControl.addEventListener('input', async (event) => {
+            const volume = event.target.value;
+            console.log('Volume set to:', volume);
+            if (dacDevice) {
+                try {
+                    // Example command to send to DAC - replace with your DAC's command
+                    const command = new Uint8Array([0x01, volume]); // Placeholder command
+                    await dacDevice.transferOut(1, command); // Endpoint ID may vary
+                } catch (error) {
+                    console.error('Error setting volume:', error);
+                }
+            } else {
+                messageDiv.textContent = 'Please connect to a DAC first.';
+            }
+        });
+    </script>
+</body>
+</html>
